@@ -25,11 +25,11 @@ function show_usage() {
 
 function resign_app()
 {
-  echo "unzip app.ipa"
-  unzip "$app"
+  #echo "unzip app.ipa"
+  unzip "$app" > /dev/null
   target=`ls Payload`
 
-  echo "remove old CodeSignature"
+  #echo "remove old CodeSignature"
   rm -r "Payload/$target/_CodeSignature" "Payload/$target/CodeResources" 2> /dev/null | true
 
   echo "replace embedded mobile provisioning profile"
@@ -40,28 +40,28 @@ function resign_app()
     /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier $bundle_id" "Payload/$target/Info.plist"
   fi
 
-  if [ $version != '' ]; then
+  if [ $version ]; then
     echo "change the version to $version"
     /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $version" "Payload/$target/Info.plist"
   fi
 
-  echo "re-sign"
+  #echo "re-sign"
   if [ $entitlements != '' ]; then
     echo "resign with $entitlements"
-    /usr/bin/codesign -f -s "iPhone Distribution: $cetificate" --entitlements="$entitlements" --resource-rules "Payload/$target/ResourceRules.plist" "Payload/$target"
+    /usr/bin/codesign -f -s "iPhone Distribution: $cetificate" --entitlements="$entitlements" "Payload/$target"
   else
     echo "resign without entitlements.plist"
-    /usr/bin/codesign -f -s "iPhone Distribution: $cetificate" --resource-rules "Payload/$target/ResourceRules.plist" "Payload/$target"
+    /usr/bin/codesign -f -s "iPhone Distribution: $cetificate" "Payload/$target"
   fi
 
-  echo "re-package"
-  zip -qr "app-resigned.ipa" Payload
-  mv "app-resigned.ipa" "$app"
+  #echo "re-package"
+  zip -qr "app-resigned.ipa" Payload > /dev/null
+  mv "app-resigned.ipa" "$app" > /dev/null
 
-  echo "remove unzip folder"
-  rm -rf Payload
+  #echo "remove unzip folder"
+  rm -rf Payload > /dev/null
 
-  echo "ReSign Complete!"
+  #echo "ReSign Complete!"
 }
 
 function app_backup()
@@ -71,42 +71,18 @@ function app_backup()
   fileNameCopy="app_backup_$timestamp.ipa"
   backup=`echo ${app//$fileName/$fileNameCopy}`
   cp "$app" "$backup"
-  echo "copy $app in $backup"
-}
-
-function ipa_info()
-{
-  echo "copy $1"
-  cp -P $1 ./info-app.ipa
-  unzip info-app.ipa
-
-  expirationDate=`/usr/libexec/PlistBuddy -c 'Print DeveloperCertificates:0' /dev/stdin <<< $(security cms -D -i Payload/*.app/embedded.mobileprovision) | openssl x509 -inform DER -noout -enddate | sed -e 's#notAfter=##'`
-
-  certificateSubject=`/usr/libexec/PlistBuddy -c 'Print DeveloperCertificates:0' /dev/stdin <<< $(security cms -D -i Payload/*.app/embedded.mobileprovision) | openssl x509 -inform DER -noout -subject`
-
-  cert_uid=`echo $certificateSubject | cut -d \/ -f 2 | cut -d \= -f 2`
-  cert_o=`echo $certificateSubject | cut -d \/ -f 4 | cut -d \= -f 2`  certificateSubject="$cert_o ($cert_uid)"
-
-  expirationMobileProvision=`/usr/libexec/PlistBuddy -c 'Print ExpirationDate' /dev/stdin <<< $(security cms -D -i Payload/*.app/embedded.mobileprovision)`
-
-  uuidMobileProvision=`/usr/libexec/PlistBuddy -c 'Print UUID' /dev/stdin <<< $(security cms -D -i Payload/*.app/embedded.mobileprovision)`
-
-  rm -rf Payload
-  rm info-app.ipa
+  #echo "copy $app in $backup"
 }
 
 if [ "$#" -lt 3 ]; then
     show_usage
 else
   echo
-  echo "ReSign App $app"
-  app_backup
-  resign_app
-  echo "App Info"
-  ipa_info $app
+  echo "....... ReSign ......."
   echo
-  echo "Firmado por: $certificateSubject"
-  echo "Certificado de distribución válido hasta: $expirationDate"
-  echo "Mobile Provision UUID: $uuidMobileProvision"
-  echo "Mobile Provision válido hasta: $expirationMobileProvision"
+  #app_backup
+  resign_app
+  echo "......................"
+  echo
+  echo
 fi
